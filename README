@@ -1,0 +1,40 @@
+This software underlies the terms of GPLv3. See GPLv3.txt for the full
+license.
+
+
+Description:
+============
+
+This project was started as an undergraduate research project. It is
+currently being extended and open-sourced. Basic concepts and design
+should be adaptable to almost any sized controller and motor.
+
+
+Goals:
+======
+
+* Brushless speed controller in it's simplest form, with various
+  expansion possibilities.
+* Elegant, easy to comprehend code.
+* Reliable, adaptable startup routine.
+* Reliable zero crossing detection.
+* Efficient commutation timing.
+* Stall detection.
+* Various input formats: RC Servo Signal, TWI (I2C), and UART.
+* Debugging: use an LED as a visual flag, or send data through serial.
+
+
+Status:
+=======
+
+As of 2011-12-02:
+~~~~~~~~~~~~~~~~~
+
+What works:
+-----------
+* RC Servo Signal capture.
+* LED and serial debugging.
+
+Known problems:
+---------------
+* 
