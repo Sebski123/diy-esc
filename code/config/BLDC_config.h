@@ -16,10 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef __BLDC_CONFIG_H__
+#define __BLDC_CONFIG_H__
+
 //===================================//
 //       ESC SETUP & SETTINGS        //
 //===================================//
 //NOTE: MCU name and processor frequency are set in the makefile
+
+#include <avr/io.h>
 
 // 1 = RC Servo Signal on INT0
 // 2 = I2C Signal using SDA and SDL (TODO)
@@ -58,39 +63,13 @@
 #define PWM_ENABLE		(TCCR1B |= TIMER1_PRESCL)
 #define PWM_DISABLE		(TCCR1B &= ~TIMER1_PRESCL)
 
-
-//------TIMER0 SETTINGS------//
-//records RC signal length
-
-#if INPUT_SIGNAL_MODE == 1
-	//RC servo pulse length should be between LOW and HIGH, in microseconds
-	#define SIGNAL_LOW 	1000
-	#define SIGNAL_HIGH	2000
-	#define TIMER0_REG			(1 << CS01) //clk/8
-	#define TIMER0_TIMSK		(1 << TOIE0) //enable interrupt for timer0
-	#define uS_PER_TICK0		0.5
-	#define SIGNAL_TICKS_LOW	(SIGNAL_LOW / uS_PER_TICK0)
-	#define SIGNAL_TICKS_HIGH	(SIGNAL_HIGH / uS_PER_TICK0)
-	#if CLIP_SIGNAL == 1
-		#define SIGNAL_TICKS_MAX	(SIGNAL_TICKS_LOW + ((SIGNAL_TICKS_HIGH - SIGNAL_TICKS_LOW) / PWM_RANGE) * (PWM_MAX)) //Testing PWM limit
-	#else
-		#define SIGNAL_TICKS_MAX	SIGNAL_TICKS_HIGH
-	#endif
-	//5% buffer between on and off thresholds to stop state bouncing between on/off
-	#define SIGNAL_TICKS_ONTHR	(SIGNAL_TICKS_LOW + (((SIGNAL_TICKS_HIGH - SIGNAL_TICKS_LOW) / PWM_RANGE) * (PWM_MIN + (PWM_RANGE*0.05)))) //PWM wont turn on until signal is above this value
-	#define SIGNAL_TICKS_OFFTHR	(SIGNAL_TICKS_LOW + (((SIGNAL_TICKS_HIGH - SIGNAL_TICKS_LOW) / PWM_RANGE) * PWM_MIN)) //PWM wont turn off until signal is below this value
-	#define SIGNAL_TICKS_SAFETY	(SIGNAL_TICKS_LOW + ((SIGNAL_TICKS_HIGH - SIGNAL_TICKS_LOW) * 0.03)) //ESC won't arm until below this value
-	
-#elif INPUT_SIGNAL_MODE == 2
+#if INPUT_SIGNAL_MODE == 2
 	
 	//TODO: I2C setup here
 	
 #elif INPUT_SIGNAL_MODE == 3
 	
 	//TODO: UART setup here
-#else
-	#error !!! Please select a valid INPUT_SIGNAL_MODE value !!!
-	
 #endif
 
 //Timer1 settings needed to generate audible beeps from the motor
@@ -204,3 +183,5 @@ inline void initPins(void){
 	//Turn all mosfets off
 	clrAllOutputs();
 }
+
+#endif //File guard

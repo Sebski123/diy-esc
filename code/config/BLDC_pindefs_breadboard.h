@@ -16,6 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef __BLDC_PINDEFS_BREADBOARD_H__
+#define __BLDC_PINDEFS_BREADBOARD_H__
+
 //===================================//
 //        ESC PIN DEFINITIONS        //
 //===================================//
@@ -24,6 +27,8 @@
 //	DDR  - Data Direction Register
 //	PORT - I/O port name
 //	PIN  - Port IN; current state of the I/O port
+
+#include <avr/io.h>
 
 //---------OUTPUTS----------//
 //Channel A
@@ -77,3 +82,5 @@
 
 //Used to read source voltage
 #define ADC_VSS			0x00
+
+#endif //File guard
