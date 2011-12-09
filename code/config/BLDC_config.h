@@ -29,39 +29,40 @@
 // 1 = RC Servo Signal on INT0
 // 2 = I2C Signal using SDA and SDL (TODO)
 // 3 = Serial data on RXD (TODO)
-#define INPUT_SIGNAL_MODE 1
-
-//Allows debugging of code via an LED and serial data
-#define DEBUG 1
-//test
+#define INPUT_SIGNAL_MODE 	1
 
 //Change for CW/CCW rotation. Swapping 2 of the motor leads will also reverse direction
-#define ROTATION_ORDER 1
+#define ROTATION_ORDER 		1
 
-//------TIMER1 SETTINGS------//
+//8-bit (0-255), 7.8khz
+#define PWM_TOP				255 //Maximum pwmVal possible
+//Leave a buffer between on and off (on > off) to avoid switching rapidly between on/off state
+#define PWM_ON_THR			20 //When off, pwmVal must go above this value before motor will turn on
+#define PWM_OFF_THR			10 //When running, motor will turn off when pwmVal goes below this value
 
-//Do not change these settings unless you know what they do
-//Frequency is determined by CPU speed, timer prescaler and timer compare values
+//TIMER 1 - Commutation Timing
+//TODO
+#define TIMER1_TIMSK		(1 << TOIE1) //Enable interrupts for timer1
+#define TIMER1_PRESCL		(1 << CS10)
+#define TIMER1_START()		(TCCR1B |= TIMER1_PRESCL) //Start timer at defined prescaler
+#define TIMER1_STOP()		(TCCR1B &= ~((1 << CS12) | (1 << CS11) | (1 << CS10))) //Clear all prescaler bits (stop the timer)
+#define DISABLE_COMM()		(TIMSK &= ~(1 << OCIE1A)) //Disable Timer1 OCR1A interrupt
+#define ENABLE_COMM()		(TIMSK |= (1 << OCIE1A)) //Enable Timer1 OCR1A interrupt
+#define DISABLE_SPIKE_REJECTION() (TIMSK &= ~(1 << OCIE1B)) //Disable Timer1 OCR1B interrupt
+#define ENABLE_SPIKE_REJECTION()  (TIMSK |= (1 << OCIE1B)) //Enable Timer1 OCR1B interrupt
 
-//0-255, 8khz
-#define PWM_RANGE		255
-#define PWM_MIN			40 //Need to allow MCU to pass bottom/top without missing interrupts
-#define PWM_SAFETY		10 //On reset, signal must go below safety before ESC is armed
-#if CLIP_SIGNAL == 1
-	#define PWM_MAX			230
-#else
-	#define PWM_MAX			PWM_RANGE
-#endif
-#define COUNTS_PER_PWM_STEP	2 //How many clock counts per 1 pwm step
-#define PWM_TOP			(COUNTS_PER_PWM_STEP * PWM_RANGE)
+//TIMER 2 - PWM Timing
+#define TIMER2_TIMSK		((1 << OCIE2) | (1 << TOIE2)) //Enable interrupts for timer2
+#define TIMER2_TCCR2		((1 << WGM21) | (1 << WGM20)) //Fast PWM mode
+#define TIMER2_PRESCL		((0 << CS22) | (1 << CS21) | (0 << CS20)) //clk/8
+#define PWM_START()			(TCCR2 |= TIMER2_PRESCL) //Start timer at designated prescaler
+#define PWM_STOP()			(TCCR2 &= ~TIMER2_PRESCL) //Stop timer
 
-//Set up Timer1 in clk/1, pwm mode
-#define TIMER1_PRESCL	((0 << CS12) | (0 << CS11) | (1 << CS10))
-#define TIMER1_REGA		((1 << WGM11) | (0 << COM1A1))
-#define TIMER1_REGB		((1 << WGM13) | TIMER1_PRESCL)
-#define TIMER1_TIMSK	((1 << OCIE1A) | (0 << OCIE1B) | (1 << TOIE1) | (1 << TICIE1)) //enable interrupts for timer1
-#define PWM_ENABLE		(TCCR1B |= TIMER1_PRESCL)
-#define PWM_DISABLE		(TCCR1B &= ~TIMER1_PRESCL)
+//Top value determines frequency, compare value determines duty cycle (volume)
+#define LOWBEEP				//TODO
+#define MIDBEEP				//*
+#define HIGHBEEP			//*
+
 
 #if INPUT_SIGNAL_MODE == 2
 	
@@ -72,29 +73,16 @@
 	//TODO: UART setup here
 #endif
 
-//Timer1 settings needed to generate audible beeps from the motor
-#define TIMER1_BEEPS_REGA	(1 << WGM11)
-#define TIMER1_BEEPS_REGB	((1 << WGM13) | (1 << CS10))
+#define GET_ACO()			((ACSR & (1 << ACO)) >> ACO) //analog comparator reading shifted to bit 1
 
-//Top value determines frequency, compare value determines duty cycle (volume)
-#define LOWBEEP				7641 //1047Hz (C6)
-#define MIDBEEP				6067 //1319Hz (E6)
-#define HIGHBEEP			5102 //1568Hz
+#define ZC_START_DETECT()	(TIMSK |= (1 << TICIE1)) // enable/disable input capture interrupt
+#define ZC_STOP_DETECT()	(TIMSK &= ~(1 << TICIE1))
 
-#define TIMER2_OVFMODE		(TCCR2 &= ~(1 << WGM21)) //normal overflow mode
-#define TIMER2_CTCMODE		(TCCR2 |= (1 << WGM21)) //CTC mode
-#define TIMER2_START_P64	(TCCR2 |= (1 << CS22)) //start timer at clk/64
-#define TIMER2_START_P32	(TCCR2 |= ((1 << CS21) | (1 << CS20))) //start timer at clk/32
-#define TIMER2_STOP			(TCCR2 &= ~((1 << CS22) | (1 << CS21) | (1 << CS20))) //stop timer
-#define TIMER2_TIMSK		((1 << OCIE2) | (1 << TOIE2)) //enable interrupts for timer2
+#define ZC_DETECT_FALLING()	(TCCR1B |= (1 << ICES1)) //A rising comparator is actually a falling B-EMF
+#define ZC_DETECT_RISING()	(TCCR1B &= ~(1 << ICES1)) //A falling comparator is actually a rising B-EMF
 
-#define TIMER2_COMM_REG		(1 << CS22) //TCCR2
-
-//Enable all timer interrupts
-#define TIMSK_REG			((1 << OCIE2) | (1 << TOIE2) | (1 << OCIE1A) | (0 << OCIE1B) | (1 << TOIE1) | (1 << TICIE1) | (1 << TOIE0))
-
-#define COMPARATOR_ENABLE	(ACSR |= (1 << ACIE))
-#define COMPARATOR_DISABLE	(ACSR &= ~(1 << ACIE))
+#define ZC_BLANKING_TICKS	200 //Timer1 ticks to wait before enabling zero cross detection. Needs to be ~12uS
+#define ZC_NOISE_REJECT		200 //ZC detection will reject spikes less than this value of clock ticks
 
 
 //------OUTPUT PIN STATES------//
@@ -136,6 +124,11 @@
 	#define CLR_B_LOW() (LOW_B_PORT &= ~(1 << LOW_B))
 	#define CLR_C_LOW() (LOW_C_PORT &= ~(1 << LOW_C))
 	
+	//A test to determine whether the lowside mosfets are on/off
+	#define GET_A_LOW() ((LOW_A_PIN & (1 << LOW_A)) ? 1 : 0)
+	#define GET_B_LOW() ((LOW_B_PIN & (1 << LOW_B)) ? 1 : 0)
+	#define GET_C_LOW() ((LOW_C_PIN & (1 << LOW_C)) ? 1 : 0)
+	
 #elif LOW_ACTIVE_LOW == 1
 	//Lowside MOSFET logic is active low
 	#define SET_A_LOW() (LOW_A_PORT &= ~(1 << LOW_A))
@@ -146,42 +139,14 @@
 	#define CLR_B_LOW() (LOW_B_PORT |= (1 << LOW_B))
 	#define CLR_C_LOW() (LOW_C_PORT |= (1 << LOW_C))
 	
+	//A test to determine whether the lowside mosfets are on/off
+	#define GET_A_LOW() ((LOW_A_PIN & (1 << LOW_A)) ? 0 : 1)
+	#define GET_B_LOW() ((LOW_B_PIN & (1 << LOW_B)) ? 0 : 1)
+	#define GET_C_LOW() ((LOW_C_PIN & (1 << LOW_C)) ? 0 : 1)
+	
 #else
 	#error !!! Please select a valid LOW_ACTIVE_LOW value in pindefs !!!
 	
 #endif
-
-#if DEBUG == 1
-	#define SET_LED() (LED_PORT |= (1 << LED))
-	#define CLR_LED() (LED_PORT &= ~(1 << LED))
-	#define TOGGLE_LED() (LED_PORT ^= (1 << LED))
-#endif
-
-inline void  clrAllOutputs(void){
-	//Turn all mosfets off
-	CLR_A_HIGH();
-	CLR_B_HIGH();
-	CLR_C_HIGH();
-    CLR_A_LOW();
-	CLR_B_LOW();
-	CLR_C_LOW();
-}
-
-inline void initPins(void){
-	//Set up outputs and initialise pins
-	
-	//Set mosfet drive pins as outputs
-    HIGH_A_DDR |= (1 << HIGH_A);
-    HIGH_B_DDR |= (1 << HIGH_B);
-    HIGH_C_DDR |= (1 << HIGH_C);
-    LOW_A_DDR |= (1 << LOW_A);
-    LOW_B_DDR |= (1 << LOW_B);
-    LOW_C_DDR |= (1 << LOW_C);
-	
-	if (DEBUG) LED_DDR |= (1 << LED);
-	
-	//Turn all mosfets off
-	clrAllOutputs();
-}
 
 #endif //File guard

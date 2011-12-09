@@ -31,6 +31,7 @@
 #include <avr/io.h>
 
 //---------OUTPUTS----------//
+//Note: PINx is used on low side to determine pwm current state
 //Channel A
 #define HIGH_A_DDR		DDRD
 #define HIGH_A_PORT		PORTD
@@ -38,6 +39,7 @@
 
 #define LOW_A_DDR		DDRD
 #define LOW_A_PORT		PORTD
+#define LOW_A_PIN		PIND
 #define LOW_A			4
 
 //Channel B
@@ -47,6 +49,7 @@
 
 #define LOW_B_DDR		DDRB
 #define LOW_B_PORT		PORTB
+#define LOW_B_PIN		PINB
 #define LOW_B			2
 
 //Channel C
@@ -56,12 +59,8 @@
 
 #define LOW_C_DDR		DDRB
 #define LOW_C_PORT		PORTB
+#define LOW_C_PIN		PINB
 #define LOW_C			0
-
-//Light an LED for debugging. Choose an unused pin (e.g MISO/MOSI/SCK)
-#define LED_DDR			DDRB
-#define LED_PORT		PORTB
-#define LED				5
 
 //Are the outputs active low? Inspect circuit diagram to determine.
 // 1 = TRUE, 0 = FALSE

@@ -38,6 +38,7 @@ ISR(INT0_vect) //Signal capture
 		//Pin is high which means the signal is on the rising edge (start of pulse)
 		//Reset timer count and overflows, and start timer
 		
+		if (MCUCR & (1 << ISC01)) { MCUCR &= ~(1 << ISC01); } //If rising edge detection was selected, switch to toggle detection
 		TCNT0 = 0;
 		t0_ovfs = 0;
 		START_TIMER0(); //Start timer
@@ -64,10 +65,24 @@ ISR(TIMER0_OVF_vect)
 void init_rc(void)
 {
 	//INT0 pin initialisation
-	GICR = (1<<INT0); //Enable external interrupt INT0
-	MCUCR = (1<<ISC00); //Set INT0 to detect logic toggle
+	GICR |= (1<<INT0); //Enable external interrupt INT0
+	MCUCR |= (1 << ISC01) | (1<<ISC00); //Set INT0 to detect rising edge only
+										//This makes sure a false signal is not captured on power up
 	
 	//Timer0 initialisation
 	TIMSK |= TIMER0_TIMSK; //Enable Timer0 interrupts
-	TCCR0 = TIMER0_TCCR0; //Configure mode and prescaler
+	START_TIMER0();
+}
+
+uint8_t processRCSignal(uint32_t RCsignal)
+{
+	//Called from main, converts input RC signal to 8-bit PWM value
+
+	//Clip signal between low and high values
+	if (RCsignal > RCSIGNAL_TICKS_HIGH) RCsignal = RCSIGNAL_TICKS_HIGH;
+	if (RCsignal < RCSIGNAL_TICKS_LOW) RCsignal = RCSIGNAL_TICKS_LOW;
+	
+	//Scale values between Low->High to 0->PWM_TOP
+	RCsignal -= RCSIGNAL_TICKS_LOW;
+	return (uint8_t)((RCsignal * PWM_TOP)/(RCSIGNAL_TICKS_HIGH - RCSIGNAL_TICKS_LOW));
 }
